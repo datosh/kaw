@@ -66,18 +66,18 @@ typedef struct {
 } aes_context;
 
 /* PROTOTYPES */
-extern void aes_init(aes_context*, uint8_t*, uint32_t);
-extern void setUpTTables();
-extern void makeTRound(uint8_t[16], uint8_t[16]);
-extern void deriveEncryptionKey(aes_context*);
-extern void printState(uint8_t[16]);
-extern void subBytes(uint8_t[16]);
-extern void shiftRows(uint8_t[16]);
-extern void mixColumns(uint8_t[16]);
-extern void addRoundKey(uint8_t[16], uint8_t[16]);
-extern void aes_encrypt(aes_context*, uint8_t*, uint32_t);
-extern void aesEncryptWithT(uint8_t[16], uint8_t[11][16]);
-extern uint8_t mc3(uint8_t);
-extern uint8_t mc2(uint8_t);
+void aes_init(aes_context*, uint8_t*, uint32_t);
+void setUpTTables();
+void makeTRound(uint8_t[16], uint8_t[16]);
+void deriveEncryptionKey(aes_context*);
+void printState(uint8_t[16]);
+void subBytes(uint8_t[16]);
+void shiftRows(uint8_t[16]);
+void mixColumns(uint8_t[16]);
+void addRoundKey(uint8_t[16], uint8_t[16]);
+void aes_encrypt(aes_context*, uint8_t*, uint32_t);
+void aesEncryptWithT(uint8_t[16], uint8_t[11][16]);
+uint8_t mc3(uint8_t);
+uint8_t mc2(uint8_t);
 
 

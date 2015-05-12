@@ -59,11 +59,11 @@ void aes_init(aes_context *ctx, uint8_t *key, uint32_t bitness) {
 	}
 	// Init space for the buffers
 	ctx->state = calloc(16, sizeof(uint8_t));		// Zero Init the state so we dont have to do that later
-	ctx->enc_key = malloc(sizeof(uint8_t) * ctx->rounds + 1);
-	ctx->dec_key = malloc(sizeof(uint8_t) * ctx->rounds + 1);
+	ctx->enc_key = malloc(sizeof(uint8_t*) * ctx->rounds + 1);
+	ctx->dec_key = malloc(sizeof(uint8_t*) * ctx->rounds + 1);
 	for (i = 0; i < (ctx->rounds + 1); i++) {
 		ctx->enc_key[i] = malloc(sizeof(uint8_t) * 16);
-		ctx->dec_key[i] = malloc(sizeof(uint8_t)* 16);
+		ctx->dec_key[i] = malloc(sizeof(uint8_t) * 16);
 	}
 
 	// Calcualte the encryption key
@@ -80,12 +80,13 @@ void aes_free(aes_context * ctx) {
 	
 	free(ctx->state);
 	
+	
 	for (i = 0; i < (ctx->rounds + 1); i++) {
 		free(ctx->enc_key[i]);
 		free(ctx->dec_key[i]);
 	}
-	free(ctx->enc_key);
-	free(ctx->dec_key);
+	// free(ctx->enc_key);
+	// free(ctx->dec_key);
 }
 
 /* T Tables are the fusion of the MixColums and the SubBytes step. */
