@@ -52,7 +52,7 @@ static const uint8_t RSBox[256] = {
 																									// x
 
 /* Round Constants for Key Derivation */
-static const uint8_t KeyRC[14] = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36, 0x6C, 0xD8, 0xAB, 0x4D };
+static const uint8_t KeyRC[14] = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36 };
 
 typedef struct {
 	// Set by the used
@@ -70,7 +70,9 @@ void aes_init(aes_context*, uint8_t*, uint32_t);
 void aes_free(aes_context*);
 void setUpTTables();
 void makeTRound(uint8_t[16], uint8_t[16]);
-void deriveEncryptionKey(aes_context*);
+void deriveEncryptionKey_128(aes_context*);
+void deriveEncryptionKey_192(aes_context*);
+void deriveEncryptionKey_256(aes_context*);
 void printState(uint8_t[16]);
 void subBytes(uint8_t[16]);
 void shiftRows(uint8_t[16]);

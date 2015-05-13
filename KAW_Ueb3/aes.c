@@ -67,9 +67,18 @@ void aes_init(aes_context *ctx, uint8_t *key, uint32_t bitness) {
 	}
 
 	// Calcualte the encryption key
-	deriveEncryptionKey(ctx);
+	if (ctx->bitness == 128) {
+		deriveEncryptionKey_128(ctx);
+	}
+	else if (ctx->bitness == 192) {
+		// deriveEncryptionKey_192(ctx);
+	}
+	else {
+		deriveEncryptionKey_256(ctx);
+	}
+	
 
-	// TOOD: Implement
+	// TOOD: Implement and move up in the if clause
 	// Calculate the decryption key
 	// deriveDecryptionKey(ctx);
 }
@@ -128,7 +137,7 @@ void makeTRound(uint8_t state[16], uint8_t key[16]) {
 	//printf("%04X, %04X, %04X, %04X\n", buffer0, buffer1, buffer2, buffer3);
 }
 
-void deriveEncryptionKey(aes_context* ctx) {
+void deriveEncryptionKey_128(aes_context* ctx) {
 	uint32_t i, j;
 
 	/* Copy over the first key, since it is equal to the initial key */
@@ -146,6 +155,71 @@ void deriveEncryptionKey(aes_context* ctx) {
 		/* NOT MULTIPLE OF FOUR */
 		for (j = 4; j < 16; j++) {
 			ctx->enc_key[i + 1][j] = ctx->enc_key[i][j] ^ ctx->enc_key[i + 1][j - 4];
+		}
+	}
+}
+
+void deriveEncryptionKey_192(aes_context* ctx) {
+	uint32_t i, j;
+
+	/* Copy over the first key, since it is equal to the initial key */
+	for (i = 0; i < 16; i++) {
+		ctx->enc_key[0][i] = ctx->key[i];
+	}
+	for (i = 0; i < 8; i++) {
+		ctx->enc_key[1][i] = ctx->key[16 + i];
+	}
+
+	for (i = 0; i < ctx->rounds; i++) {
+		/* MULTIPLE OF FOUR */
+		ctx->enc_key[i + 1][0] = ctx->enc_key[i][0] ^ SBox[ctx->enc_key[i][0xD]] ^ KeyRC[i];
+		ctx->enc_key[i + 1][1] = ctx->enc_key[i][1] ^ SBox[ctx->enc_key[i][0xE]];
+		ctx->enc_key[i + 1][2] = ctx->enc_key[i][2] ^ SBox[ctx->enc_key[i][0xF]];
+		ctx->enc_key[i + 1][3] = ctx->enc_key[i][3] ^ SBox[ctx->enc_key[i][0xC]];
+
+		/* NOT MULTIPLE OF FOUR */
+		for (j = 4; j < 16; j++) {
+			ctx->enc_key[i + 1][j] = ctx->enc_key[i][j] ^ ctx->enc_key[i + 1][j - 4];
+		}
+	}
+}
+
+void deriveEncryptionKey_256(aes_context* ctx) {
+
+	uint32_t i, j;
+
+	uint8_t b0, b1, b2, b3, b4, b5;
+
+	/* Copy over the first key, since it is equal to the initial key */
+	for (i = 0; i < 16; i++) {
+		ctx->enc_key[0][i] = ctx->key[i];
+		ctx->enc_key[1][i] = ctx->key[i + 16];
+	}
+
+	for (i = 0; i < (ctx->rounds - 1); i++) {
+		/* MULTIPLE OF FOUR */
+		if ((i % 2) == 0) {
+			b4 = ctx->enc_key[i + 1][0xD];
+			b0 = SBox[ctx->enc_key[i + 1][0xD]];
+			b1 = b0 ^ KeyRC[i / 2];
+			b2 = ctx->enc_key[i][0];
+			b3 = b1 ^ b2;
+			ctx->enc_key[i + 2][0] = ctx->enc_key[i][0] ^ SBox[ctx->enc_key[i + 1][0xD]] ^ KeyRC[i / 2];
+			ctx->enc_key[i + 2][1] = ctx->enc_key[i][1] ^ SBox[ctx->enc_key[i + 1][0xE]];
+			ctx->enc_key[i + 2][2] = ctx->enc_key[i][2] ^ SBox[ctx->enc_key[i + 1][0xF]];
+			ctx->enc_key[i + 2][3] = ctx->enc_key[i][3] ^ SBox[ctx->enc_key[i + 1][0xC]];
+		}
+		else {
+			ctx->enc_key[i + 2][0] = ctx->enc_key[i][0] ^ SBox[ctx->enc_key[i + 1][0xC]];
+			ctx->enc_key[i + 2][1] = ctx->enc_key[i][1] ^ SBox[ctx->enc_key[i + 1][0xD]];
+			ctx->enc_key[i + 2][2] = ctx->enc_key[i][2] ^ SBox[ctx->enc_key[i + 1][0xE]];
+			ctx->enc_key[i + 2][3] = ctx->enc_key[i][3] ^ SBox[ctx->enc_key[i + 1][0xF]];
+		}
+
+		/* NOT MULTIPLE OF FOUR */
+		for (j = 4; j < 16; j++) {
+			b0 = ctx->enc_key[i][j] ^ ctx->enc_key[i + 2][j - 4];
+			ctx->enc_key[i + 2][j] = ctx->enc_key[i][j] ^ ctx->enc_key[i + 2][j - 4];
 		}
 	}
 }
