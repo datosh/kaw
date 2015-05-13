@@ -67,6 +67,7 @@ typedef struct {
 
 /* PROTOTYPES */
 void aes_init(aes_context*, uint8_t*, uint32_t);
+void aes_free(aes_context*);
 void setUpTTables();
 void makeTRound(uint8_t[16], uint8_t[16]);
 void deriveEncryptionKey(aes_context*);
@@ -76,7 +77,7 @@ void shiftRows(uint8_t[16]);
 void mixColumns(uint8_t[16]);
 void addRoundKey(uint8_t[16], uint8_t[16]);
 void aes_encrypt(aes_context*, uint8_t*, uint32_t);
-void aesEncryptWithT(uint8_t[16], uint8_t[11][16]);
+void aes_encrypt_withT(aes_context*, uint8_t*, uint32_t);
 uint8_t mc3(uint8_t);
 uint8_t mc2(uint8_t);
 

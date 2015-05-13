@@ -59,8 +59,8 @@ void aes_init(aes_context *ctx, uint8_t *key, uint32_t bitness) {
 	}
 	// Init space for the buffers
 	ctx->state = calloc(16, sizeof(uint8_t));		// Zero Init the state so we dont have to do that later
-	ctx->enc_key = malloc(sizeof(uint8_t*) * ctx->rounds + 1);
-	ctx->dec_key = malloc(sizeof(uint8_t*) * ctx->rounds + 1);
+	ctx->enc_key = malloc(sizeof(uint8_t*) * (ctx->rounds + 1));
+	ctx->dec_key = malloc(sizeof(uint8_t*) * (ctx->rounds + 1));
 	for (i = 0; i < (ctx->rounds + 1); i++) {
 		ctx->enc_key[i] = malloc(sizeof(uint8_t) * 16);
 		ctx->dec_key[i] = malloc(sizeof(uint8_t) * 16);
@@ -79,32 +79,30 @@ void aes_free(aes_context * ctx) {
 	uint32_t i;
 	
 	free(ctx->state);
-	
-	
 	for (i = 0; i < (ctx->rounds + 1); i++) {
 		free(ctx->enc_key[i]);
 		free(ctx->dec_key[i]);
 	}
-	// free(ctx->enc_key);
-	// free(ctx->dec_key);
+	free(ctx->enc_key);
+	free(ctx->dec_key);
 }
 
 /* T Tables are the fusion of the MixColums and the SubBytes step. */
 void setUpTTables() {
-	int i = 0;
-	for (; i < 255; i++) {
+	int i;
+	for (i = 0; i < 256; i++) {
 		T0[i] = mc2(SBox[i]) << 24 |     SBox[i]  << 16 |     SBox[i]  << 8 | mc3(SBox[i]);
 		T1[i] = mc3(SBox[i]) << 24 | mc2(SBox[i]) << 16 |     SBox[i]  << 8 |     SBox[i];
 		T2[i] =     SBox[i]  << 24 | mc3(SBox[i]) << 16 | mc2(SBox[i]) << 8 |     SBox[i];
-		T3[i] =     SBox[i]  << 24 |      SBox[i] << 16 | mc3(SBox[i]) << 8 | mc2(SBox[i]);
+		T3[i] =     SBox[i]  << 24 |     SBox[i]  << 16 | mc3(SBox[i]) << 8 | mc2(SBox[i]);
 	}
 	setup_done = 1;
 }
 
 void makeTRound(uint8_t state[16], uint8_t key[16]) {
 	uint32_t buffer0 = T0[state[0]] ^ T1[state[5]] ^ T2[state[10]] ^ T3[state[15]] ^ ((key[0] << 24) | (key[1] << 16) | (key[2] << 8) | (key[3]));
-	uint32_t buffer1 = T0[state[4]] ^ T1[state[9]] ^ T2[state[14]] ^ T3[state[03]] ^ ((key[4] << 24) | (key[5] << 16) | (key[6] << 8) | (key[7]));
-	uint32_t buffer2 = T0[state[8]] ^ T1[state[13]] ^ T2[state[2]] ^ T3[state[07]] ^ ((key[8] << 24) | (key[9] << 16) | (key[10] << 8) | (key[11]));
+	uint32_t buffer1 = T0[state[4]] ^ T1[state[9]] ^ T2[state[14]] ^ T3[state[3]] ^ ((key[4] << 24) | (key[5] << 16) | (key[6] << 8) | (key[7]));
+	uint32_t buffer2 = T0[state[8]] ^ T1[state[13]] ^ T2[state[2]] ^ T3[state[7]] ^ ((key[8] << 24) | (key[9] << 16) | (key[10] << 8) | (key[11]));
 	uint32_t buffer3 = T0[state[12]] ^ T1[state[1]] ^ T2[state[6]] ^ T3[state[11]] ^ ((key[12] << 24) | (key[13] << 16) | (key[14] << 8) | (key[15]));
 
 	state[0] = (buffer0 >> 24) & 0xFF;
@@ -126,6 +124,8 @@ void makeTRound(uint8_t state[16], uint8_t key[16]) {
 	state[13] = (buffer3 >> 16) & 0xFF;
 	state[14] = (buffer3 >> 8) & 0xFF;
 	state[15] = (buffer3 >> 0) & 0xFF;
+
+	//printf("%04X, %04X, %04X, %04X\n", buffer0, buffer1, buffer2, buffer3);
 }
 
 void deriveEncryptionKey(aes_context* ctx) {
@@ -228,6 +228,9 @@ void aes_encrypt(aes_context * ctx, uint8_t * message, uint32_t length) {
 	//2. Initial Round Key
 	addRoundKey(ctx->state, ctx->enc_key[0]);
 
+	printf("Round: %d\n", 0);
+	printState(ctx->state);
+
 	//3. Rounds 1...9
 	uint32_t round = 1;
 	for (; round < ctx->rounds; round++) {
@@ -235,28 +238,49 @@ void aes_encrypt(aes_context * ctx, uint8_t * message, uint32_t length) {
 		shiftRows(ctx->state);
 		mixColumns(ctx->state);
 		addRoundKey(ctx->state, ctx->enc_key[round]);
+
+		printf("Round: %d\n", round);
+		printState(ctx->state);
 	}
 
 	//4. Round 10
 	subBytes(ctx->state);
 	shiftRows(ctx->state);
 	addRoundKey(ctx->state, ctx->enc_key[ctx->rounds]);
+
+	printf("Round: %d\n", ctx->rounds);
+	printState(ctx->state);
 }
 
-void aesEncryptWithT(uint8_t state[16], uint8_t key[11][16]) {
+void aes_encrypt_withT(aes_context * ctx, uint8_t * message, uint32_t length) {
+	//1. Move the message into the state
+	int i;
+	for (i = 0; i < 16; i++) {
+		ctx->state[i] = message[i];
+	}
+
 	//2. Initial Round Key
-	addRoundKey(state, key[0]);
+	addRoundKey(ctx->state, ctx->enc_key[0]);
+
+	printf("Round: %d\n", 0);
+	printState(ctx->state);
 
 	//3. Rounds 1...9
-	int round = 1;
-	for (; round < 10; round++) {
-		makeTRound(state, key[round]);
+	int round;
+	for (round = 1; round < ctx->rounds; round++) {
+		makeTRound(ctx->state, ctx->enc_key[round]);
+
+		printf("Round: %d\n", round);
+		printState(ctx->state);
 	}
 
 	//4. Round 10
-	subBytes(state);
-	shiftRows(state);
-	addRoundKey(state, key[10]);
+	subBytes(ctx->state);
+	shiftRows(ctx->state);
+	addRoundKey(ctx->state, ctx->enc_key[ctx->rounds]);
+
+	printf("Round: %d\n", ctx->rounds);
+	printState(ctx->state);
 }
 
 
